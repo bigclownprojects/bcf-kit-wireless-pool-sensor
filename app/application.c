@@ -31,22 +31,22 @@ DATA- yellow (white)
 #define BAROMETER_UPDATE_SERVICE_INTERVAL  (1 * 60 * 1000)
 #define BAROMETER_UPDATE_NORMAL_INTERVAL   (5 * 60 * 1000)
 
-#define TEMPERATURE_DS18B20_PUB_NO_CHANGE_INTEVAL (5 * 60 * 1000)
-#define TEMPERATURE_DS18B20_PUB_VALUE_CHANGE 10.0f //0.4f
+#define TEMPERATURE_DS18B20_PUB_NO_CHANGE_INTERVAL (5 * 60 * 1000)
+#define TEMPERATURE_DS18B20_PUB_VALUE_CHANGE 1.0f //0.4f
 
-#define TEMPERATURE_TAG_PUB_NO_CHANGE_INTEVAL (5 * 60 * 1000)
+#define TEMPERATURE_TAG_PUB_NO_CHANGE_INTERVAL (5 * 60 * 1000)
 #define TEMPERATURE_TAG_PUB_VALUE_CHANGE 50.0f //0.6f
 
-#define HUMIDITY_TAG_PUB_NO_CHANGE_INTEVAL (5 * 60 * 1000)
+#define HUMIDITY_TAG_PUB_NO_CHANGE_INTERVAL (5 * 60 * 1000)
 #define HUMIDITY_TAG_PUB_VALUE_CHANGE 50.0f //50.f
 
-#define LUX_METER_TAG_PUB_NO_CHANGE_INTEVAL (5 * 60 * 1000)
+#define LUX_METER_TAG_PUB_NO_CHANGE_INTERVAL (5 * 60 * 1000)
 #define LUX_METER_TAG_PUB_VALUE_CHANGE 100000.0f // set too big value so data will be send only every 5 minutes, light changes a lot outside.
 
-#define BAROMETER_TAG_PUB_NO_CHANGE_INTEVAL (5 * 60 * 1000)
+#define BAROMETER_TAG_PUB_NO_CHANGE_INTERVAL (5 * 60 * 1000)
 #define BAROMETER_TAG_PUB_VALUE_CHANGE 200000.0f //20.0f
 
-#define DS18B20_SENSOR_COUNT 10
+#define DS18B20_SENSOR_COUNT 14
 
 static bc_led_t led;
 static bc_button_t button;
@@ -122,8 +122,13 @@ void handler_ds18b20(bc_ds18b20_t *self, uint64_t device_address, bc_ds18b20_eve
             snprintf(topic, sizeof(topic), "thermometer/%" PRIx64 "/temperature", device_address);
             bc_radio_pub_float(topic, &value);
             params.temperature_ds18b20[device_index].value = value;
-            params.temperature_ds18b20[device_index].next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_DS18B20_PUB_NO_CHANGE_INTEVAL;
+            params.temperature_ds18b20[device_index].next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_DS18B20_PUB_NO_CHANGE_INTERVAL;
         }
+    }
+
+    if (e == bc_ds18b20_EVENT_ERROR)
+    {
+        //bc_log_debug("bc_ds18b20_EVENT_ERROR");
     }
 }
 
@@ -141,7 +146,7 @@ void climate_module_event_handler(bc_module_climate_event_t event, void *event_p
             {
                 bc_radio_pub_temperature(BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_DEFAULT, &value);
                 params.temperature.value = value;
-                params.temperature.next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_TAG_PUB_NO_CHANGE_INTEVAL;
+                params.temperature.next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_TAG_PUB_NO_CHANGE_INTERVAL;
             }
         }
     }
@@ -153,7 +158,7 @@ void climate_module_event_handler(bc_module_climate_event_t event, void *event_p
             {
                 bc_radio_pub_humidity(BC_RADIO_PUB_CHANNEL_R3_I2C0_ADDRESS_DEFAULT, &value);
                 params.humidity.value = value;
-                params.humidity.next_pub = bc_scheduler_get_spin_tick() + HUMIDITY_TAG_PUB_NO_CHANGE_INTEVAL;
+                params.humidity.next_pub = bc_scheduler_get_spin_tick() + HUMIDITY_TAG_PUB_NO_CHANGE_INTERVAL;
             }
         }
     }
@@ -169,7 +174,7 @@ void climate_module_event_handler(bc_module_climate_event_t event, void *event_p
             {
                 bc_radio_pub_luminosity(BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_DEFAULT, &value);
                 params.illuminance.value = value;
-                params.illuminance.next_pub = bc_scheduler_get_spin_tick() + LUX_METER_TAG_PUB_NO_CHANGE_INTEVAL;
+                params.illuminance.next_pub = bc_scheduler_get_spin_tick() + LUX_METER_TAG_PUB_NO_CHANGE_INTERVAL;
             }
         }
     }
@@ -188,7 +193,7 @@ void climate_module_event_handler(bc_module_climate_event_t event, void *event_p
 
                 bc_radio_pub_barometer(BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_DEFAULT, &value, &meter);
                 params.pressure.value = value;
-                params.pressure.next_pub = bc_scheduler_get_spin_tick() + BAROMETER_TAG_PUB_NO_CHANGE_INTEVAL;
+                params.pressure.next_pub = bc_scheduler_get_spin_tick() + BAROMETER_TAG_PUB_NO_CHANGE_INTERVAL;
             }
         }
     }
@@ -211,6 +216,9 @@ void switch_to_normal_mode_task(void *param)
 
 void application_init(void)
 {
+
+    //bc_log_init(BC_LOG_LEVEL_DUMP, BC_LOG_TIMESTAMP_ABS);
+
     bc_led_init(&led, BC_GPIO_LED, false, false);
     bc_led_set_mode(&led, BC_LED_MODE_OFF);
 
@@ -245,5 +253,4 @@ void application_init(void)
 
     bc_led_pulse(&led, 2000);
 
-    //bc_log_init(BC_LOG_LEVEL_DEBUG, BC_LOG_TIMESTAMP_ABS);
 }

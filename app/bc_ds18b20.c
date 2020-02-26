@@ -1,5 +1,6 @@
 #include <bc_ds18b20.h>
 #include <bc_onewire.h>
+#include <bc_log.h>
 
 #include <bc_gpio.h>
 #include <bc_i2c.h>
@@ -160,10 +161,12 @@ static bool _bc_ds18b20_power_up(bc_ds18b20_t *self)
         if (bc_module_sensor_get_revision() == BC_MODULE_SENSOR_REVISION_R1_1)
         {
             bc_module_sensor_set_vdd(1);
+            //bc_log_debug("powerup R1_1");
         }
         else
         {
             bc_module_sensor_set_pull(BC_MODULE_SENSOR_CHANNEL_A, BC_MODULE_SENSOR_PULL_UP_56R);
+            //bc_log_debug("powerup R1_0");
         }
 
         if (!bc_module_sensor_set_pull(BC_MODULE_SENSOR_CHANNEL_B, BC_MODULE_SENSOR_PULL_UP_4K7))
@@ -175,6 +178,8 @@ static bool _bc_ds18b20_power_up(bc_ds18b20_t *self)
     _bc_ds18b20_power_semaphore++;
 
     self->_power = true;
+
+    //bc_log_debug("powerup OK");
 
     return true;
 }
@@ -209,23 +214,30 @@ static bool _bc_ds18b20_power_down(bc_ds18b20_t *self)
 
     self->_power = false;
 
+    //bc_log_debug("powerdown OK");
+
     return true;
 }
 
 static bool _bc_ds18b20_is_scratchpad_valid(uint8_t *scratchpad)
 {
+    /*
     if (scratchpad[5] != 0xff)
     {
-        return false;
+        //bc_log_debug("_bc_ds18b20_is_scratchpad_valid scratchpad[5] != 0xff ERROR");
+        //return false;
     }
 
     if (scratchpad[7] != 0x10)
     {
-        return false;
+        //bc_log_debug("_bc_ds18b20_is_scratchpad_valid scratchpad[7] != 0x10 ERROR");
+        //return false;
     }
+    */
 
     if (bc_onewire_crc8(scratchpad, _BC_DS18B20_SCRATCHPAD_SIZE, 0) != 0)
     {
+        //bc_log_debug("_bc_ds18b20_is_scratchpad_valid bc_onewire_crc8 ERROR");
         return false;
     }
 
@@ -264,10 +276,14 @@ static void _bc_ds18b20_task_measure(void *param)
         {
             self->_state = BC_DS18B20_STATE_ERROR;
 
+            //bc_log_debug("BC_DS18B20_STATE_PREINITIALIZE");
+
             if (!bc_module_sensor_init())
             {
                 goto start;
             }
+
+            //bc_log_debug("BC_DS18B20_STATE_PREINITIALIZE sensor init ok");
 
             bc_module_sensor_set_mode(BC_MODULE_SENSOR_CHANNEL_B, BC_MODULE_SENSOR_MODE_INPUT);
 
@@ -275,6 +291,8 @@ static void _bc_ds18b20_task_measure(void *param)
             {
                 goto start;
             }
+
+            //bc_log_debug("BC_DS18B20_STATE_PREINITIALIZE powerup ok");
 
             self->_state = BC_DS18B20_STATE_INITIALIZE;
 
@@ -289,7 +307,7 @@ static void _bc_ds18b20_task_measure(void *param)
             uint64_t _device_address = 0;
             self->sensor_found = 0;
 
-            bc_onewire_search_start(0);
+            bc_onewire_search_start(0x25);
             while ((self->sensor_found < self->sensor_count) && bc_onewire_search_next(_BC_DS18B20_1WIRE_PIN, &_device_address))
             {
                 self->sensor[self->sensor_found]._device_address = _device_address;
@@ -298,17 +316,19 @@ static void _bc_ds18b20_task_measure(void *param)
                 self->sensor_found++;
             }
 
+            //bc_log_debug("BC_DS18B20_STATE_INITIALIZE sensors found %d", self->sensor_found);
+
             if (self->sensor_found == 0)
             {
                 goto start;
             }
 
-            bc_onewire_transaction_start();
+            bc_onewire_transaction_start(_BC_DS18B20_1WIRE_PIN);
 
             // Write Scratchpad
             if (!bc_onewire_reset(_BC_DS18B20_1WIRE_PIN))
             {
-                bc_onewire_transaction_stop();
+                bc_onewire_transaction_stop(_BC_DS18B20_1WIRE_PIN);
 
                 goto start;
             }
@@ -319,7 +339,7 @@ static void _bc_ds18b20_task_measure(void *param)
 
             bc_onewire_write(_BC_DS18B20_1WIRE_PIN, buffer, sizeof(buffer));
 
-            bc_onewire_transaction_stop();
+            bc_onewire_transaction_stop(_BC_DS18B20_1WIRE_PIN);
 
             if (self->_measurement_active)
             {
@@ -334,6 +354,8 @@ static void _bc_ds18b20_task_measure(void *param)
             }
 
             self->_state = BC_DS18B20_STATE_READY;
+
+            //bc_log_debug("BC_DS18B20_STATE_INITIALIZE ok");
 
             return;
         }
@@ -356,11 +378,11 @@ static void _bc_ds18b20_task_measure(void *param)
         {
             self->_state = BC_DS18B20_STATE_ERROR;
 
-            bc_onewire_transaction_start();
+            bc_onewire_transaction_start(_BC_DS18B20_1WIRE_PIN);
 
             if (!bc_onewire_reset(_BC_DS18B20_1WIRE_PIN))
             {
-            	bc_onewire_transaction_stop();
+            	bc_onewire_transaction_stop(_BC_DS18B20_1WIRE_PIN);
                 goto start;
             }
 
@@ -369,11 +391,13 @@ static void _bc_ds18b20_task_measure(void *param)
 
             bc_onewire_write_8b(_BC_DS18B20_1WIRE_PIN, 0x44);
 
-            bc_onewire_transaction_stop();
+            bc_onewire_transaction_stop(_BC_DS18B20_1WIRE_PIN);
 
             self->_state = BC_DS18B20_STATE_READ;
 
             bc_scheduler_plan_current_from_now(_bc_ds18b20_lut_delay[self->_resolution]);
+
+            //bc_log_debug("Measure ok");
 
             return;
         }
@@ -385,11 +409,13 @@ static void _bc_ds18b20_task_measure(void *param)
 
             for (int i = 0; i < self->sensor_found; i++)
             {
-                bc_onewire_transaction_start();
+                bc_onewire_transaction_start(_BC_DS18B20_1WIRE_PIN);
 
                 if (!bc_onewire_reset(_BC_DS18B20_1WIRE_PIN))
                 {
-                    bc_onewire_transaction_stop();
+                    bc_onewire_transaction_stop(_BC_DS18B20_1WIRE_PIN);
+
+                    //bc_log_debug("BC_DS18B20_STATE_READ bc_onewire_reset error");
 
                     goto start;
                 }
@@ -400,13 +426,19 @@ static void _bc_ds18b20_task_measure(void *param)
 
                 bc_onewire_read(_BC_DS18B20_1WIRE_PIN, scratchpad, sizeof(scratchpad));
 
-                bc_onewire_transaction_stop();
-              
+                bc_onewire_transaction_stop(_BC_DS18B20_1WIRE_PIN);
 
+                //bc_log_debug("READ bc_onewire_transaction_stop");
+
+                //bc_log_dump(scratchpad, sizeof(scratchpad), "Scratchpad");
+              
                 if (!_bc_ds18b20_is_scratchpad_valid(scratchpad))
                 {
+                    //bc_log_debug("BC_DS18B20_STATE_READ scratchpad not valid");
                     goto start;
                 }
+
+                //bc_log_debug("READ scratchpad is valid");
 
                 self->sensor[i]._temperature_raw = ((int16_t) scratchpad[1]) << 8 | ((int16_t) scratchpad[0]);
                 self->sensor[i]._temperature_valid = true;
@@ -416,6 +448,8 @@ static void _bc_ds18b20_task_measure(void *param)
             {
                 goto start;
             }
+
+            //bc_log_debug("READ ok");
 
             self->_state = BC_DS18B20_STATE_UPDATE;
 
