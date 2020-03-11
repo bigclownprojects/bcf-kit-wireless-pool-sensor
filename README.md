@@ -2,14 +2,14 @@
 
 # Radio Pool Sensor with Climate Module and 1-Wire DS18B20 temperature sensors
 
-[![Travis](https://img.shields.io/travis/bigclownlabs/bc-core-module/master.svg)](https://travis-ci.org/bigclownlabs/bcf-scissor-lift-node)
-[![Release](https://img.shields.io/github/release/bigclownlabs/bc-core-module.svg)](https://github.com/bigclownlabs/bcf-scissor-lift-node/releases)
-[![License](https://img.shields.io/github/license/bigclownlabs/bc-core-module.svg)](https://github.com/bigclownlabs/bcf-scissor-lift-node/blob/master/LICENSE)
+[![Travis](https://img.shields.io/travis/bigclownprojects/bcf-radio-pool-sensor/master.svg)](https://travis-ci.org/bigclownprojects/bcf-radio-pool-sensor)
+[![Release](https://img.shields.io/github/release/bigclownprojects/bcf-radio-pool-sensor.svg)](https://github.com/bigclownprojects/bcf-radio-pool-sensor/releases)
+[![License](https://img.shields.io/github/license/bigclownprojects/bcf-radio-pool-sensor.svg)](https://github.com/bigclownprojects/bcf-radio-pool-sensor/blob/master/LICENSE)
 [![Twitter](https://img.shields.io/twitter/follow/BigClownLabs.svg?style=social&label=Follow)](https://twitter.com/BigClownLabs)
 
 If you want to get more information about Core Module, firmware and how to work with it, please follow this link:
 
-**https://doc.bigclown.com/core-module.html**
+**https://developers.hardwario.com/firmware/firmware-quick-start**
 
 ## License
 
