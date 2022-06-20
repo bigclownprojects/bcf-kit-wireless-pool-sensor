@@ -119,7 +119,7 @@ void handler_ds18b20(bc_ds18b20_t *self, uint64_t device_address, bc_ds18b20_eve
         if ((fabs(value - params.temperature_ds18b20[device_index].value) >= TEMPERATURE_DS18B20_PUB_VALUE_CHANGE) || (params.temperature_ds18b20[device_index].next_pub < bc_scheduler_get_spin_tick()))
         {
             static char topic[64];
-            snprintf(topic, sizeof(topic), "thermometer/%" PRIx64 "/temperature", device_address);
+            snprintf(topic, sizeof(topic), "thermometer/%016" PRIx64 "/temperature", device_address);
             bc_radio_pub_float(topic, &value);
             params.temperature_ds18b20[device_index].value = value;
             params.temperature_ds18b20[device_index].next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_DS18B20_PUB_NO_CHANGE_INTERVAL;
