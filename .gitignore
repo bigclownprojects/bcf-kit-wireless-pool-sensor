@@ -7,3 +7,5 @@ Debug_STM32L083CZ_FLASH.ld
 bcf-scissor-lift-node.elf.launch
 /send/
 /Debug/
+firmware.bin
+.vscode/
